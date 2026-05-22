@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>日常记账小程序</title>
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="日常记账" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="topbar">
+        <div>
+          <p class="eyebrow">本地保存 · 消费记账</p>
+          <h1>日常记账</h1>
+        </div>
+        <div class="month-switcher" aria-label="月份切换">
+          <button id="prevMonth" type="button" title="上个月">‹</button>
+          <input id="monthPicker" type="month" />
+          <button id="nextMonth" type="button" title="下个月">›</button>
+        </div>
+      </section>
+
+      <section class="summary-grid" aria-label="本月概览">
+        <article class="metric metric-expense">
+          <span>本月支出</span>
+          <strong id="totalExpense">¥0.00</strong>
+        </article>
+        <article class="metric metric-income">
+          <span>本月收入</span>
+          <strong id="totalIncome">¥0.00</strong>
+        </article>
+        <article class="metric">
+          <span>结余</span>
+          <strong id="balance">¥0.00</strong>
+        </article>
+        <article class="metric">
+          <span>预算剩余</span>
+          <strong id="budgetLeft">未设置</strong>
+        </article>
+      </section>
+
+      <section class="workspace">
+        <aside class="panel entry-panel" aria-label="新增记账">
+          <div class="panel-title">
+            <h2>记一笔</h2>
+            <div class="type-toggle" role="group" aria-label="记账类型">
+              <button class="active" id="expenseType" type="button">支出</button>
+              <button id="incomeType" type="button">收入</button>
+            </div>
+          </div>
+
+          <form id="entryForm" autocomplete="off">
+            <label>
+              金额
+              <input id="amount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="例如 38.5" required />
+            </label>
+            <label>
+              分类
+              <select id="category" required></select>
+            </label>
+            <label>
+              日期
+              <input id="date" type="date" required />
+            </label>
+            <label>
+              账户
+              <select id="account">
+                <option>微信</option>
+                <option>支付宝</option>
+                <option>银行卡</option>
+                <option>现金</option>
+                <option>信用卡</option>
+              </select>
+            </label>
+            <label class="full">
+              备注
+              <input id="note" type="text" maxlength="80" placeholder="早餐、打车、客户回款..." />
+            </label>
+            <button class="primary" type="submit">保存这一笔</button>
+          </form>
+
+          <div class="budget-box">
+            <label>
+              本月预算
+              <input id="budgetInput" type="number" inputmode="decimal" min="0" step="1" placeholder="输入预算金额" />
+            </label>
+            <button id="saveBudget" type="button">保存预算</button>
+          </div>
+        </aside>
+
+        <section class="main-panel">
+          <div class="toolbar">
+            <div class="search-wrap">
+              <span aria-hidden="true">⌕</span>
+              <input id="searchInput" type="search" placeholder="搜索分类、备注、账户" />
+            </div>
+            <select id="filterType" aria-label="筛选类型">
+              <option value="all">全部</option>
+              <option value="expense">只看支出</option>
+              <option value="income">只看收入</option>
+            </select>
+            <button id="exportCsv" type="button">导出 CSV</button>
+            <label class="import-button">
+              导入 CSV
+              <input id="importCsv" type="file" accept=".csv,text/csv" />
+            </label>
+            <button id="clearData" class="danger" type="button">清空</button>
+          </div>
+
+          <div class="content-grid">
+            <section class="panel chart-panel" aria-label="分类统计">
+              <div class="panel-title">
+                <h2>支出分类</h2>
+                <span id="recordCount">0 笔</span>
+              </div>
+              <canvas id="categoryChart" width="420" height="260" aria-label="分类支出图表"></canvas>
+              <div id="categoryList" class="category-list"></div>
+            </section>
+
+            <section class="panel records-panel" aria-label="记账明细">
+              <div class="panel-title">
+                <h2>明细</h2>
+                <button id="addSample" type="button">填入示例</button>
+              </div>
+              <div id="records" class="records"></div>
+            </section>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <template id="recordTemplate">
+      <article class="record-row">
+        <div class="record-icon"></div>
+        <div class="record-main">
+          <strong class="record-category"></strong>
+          <span class="record-meta"></span>
+        </div>
+        <div class="record-money"></div>
+        <button class="delete-record" type="button" title="删除">×</button>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
