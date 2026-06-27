@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>智能记账</title>
+    <meta name="theme-color" content="#285c7c" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="智能记账" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  </head>
+  <body>
+    <main class="app">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">智能记账</p>
+          <h1>说一句、拍一张，都能先记下来</h1>
+          <p class="hero-text">语音、截图识别、粘贴文字和手动输入，统一解析成账单，确认后保存到手机本地。</p>
+        </div>
+        <img src="icons/scan-512.png" alt="智能记账图标" />
+      </section>
+
+      <section class="summary">
+        <article>
+          <span>本月支出</span>
+          <strong id="monthExpense">¥0.00</strong>
+        </article>
+        <article>
+          <span>本月收入</span>
+          <strong id="monthIncome">¥0.00</strong>
+        </article>
+        <article>
+          <span>本月结余</span>
+          <strong id="monthBalance">¥0.00</strong>
+        </article>
+      </section>
+
+      <section class="capture-panel">
+        <div class="mode-tabs" role="tablist" aria-label="记账方式">
+          <button class="active" data-mode="voice" type="button">语音</button>
+          <button data-mode="image" type="button">截图</button>
+          <button data-mode="text" type="button">文字</button>
+          <button data-mode="manual" type="button">手动</button>
+        </div>
+
+        <div class="mode-pane active" id="voicePane">
+          <button class="record-button" id="voiceButton" type="button">
+            <span id="voiceIcon">按一下开始，说一笔</span>
+            <strong>开始语音记账</strong>
+          </button>
+          <p class="hint">例：今天午饭花了 36 元微信；昨天客户回款 2000 到银行卡。</p>
+          <textarea id="voiceText" placeholder="识别到的语音会显示在这里，也可以自己改。"></textarea>
+          <button id="parseVoice" type="button">解析语音文字</button>
+        </div>
+
+        <div class="mode-pane" id="imagePane">
+          <label class="upload-box">
+            <input id="imageInput" type="file" accept="image/*" />
+            <span>上传付款截图 / 小票照片 / 聊天截图</span>
+          </label>
+          <img id="imagePreview" class="preview" alt="截图预览" hidden />
+          <div class="button-row">
+            <button id="runOcr" type="button">识别截图文字</button>
+            <button id="clearImage" type="button">清除图片</button>
+          </div>
+          <p id="ocrStatus" class="hint">截图只用于识别文字；识别库需要网络加载，慢一点是正常的。</p>
+          <textarea id="ocrText" placeholder="截图识别出来的文字会显示在这里，可以修改后再解析。"></textarea>
+          <button id="parseOcr" type="button">解析截图文字</button>
+        </div>
+
+        <div class="mode-pane" id="textPane">
+          <textarea id="freeText" placeholder="粘贴支付宝/微信账单文字，或输入：打车 28 元 支付宝"></textarea>
+          <button id="parseText" type="button">解析文字</button>
+        </div>
+
+        <div class="mode-pane" id="manualPane">
+          <p class="hint">不想识别时，直接填下面的确认表也能保存。</p>
+          <button id="newManual" type="button">新建一笔空白记录</button>
+        </div>
+      </section>
+
+      <section class="draft-panel">
+        <div class="panel-title">
+          <h2>确认后入账</h2>
+          <span id="draftSource">等待识别</span>
+        </div>
+        <form id="draftForm">
+          <label>
+            类型
+            <select id="type">
+              <option value="expense">支出</option>
+              <option value="income">收入</option>
+            </select>
+          </label>
+          <label>
+            金额
+            <input id="amount" type="number" min="0.01" step="0.01" inputmode="decimal" required />
+          </label>
+          <label>
+            分类
+            <select id="category"></select>
+          </label>
+          <label>
+            账户
+            <select id="account">
+              <option>微信</option>
+              <option>支付宝</option>
+              <option>银行卡</option>
+              <option>信用卡</option>
+              <option>现金</option>
+              <option>其他</option>
+            </select>
+          </label>
+          <label>
+            日期
+            <input id="date" type="date" required />
+          </label>
+          <label>
+            商家/对象
+            <input id="merchant" type="text" placeholder="美团、便利店、客户名..." />
+          </label>
+          <label class="full">
+            备注
+            <input id="note" type="text" placeholder="识别来源、用途、补充说明" />
+          </label>
+          <button class="primary full" type="submit">确认保存</button>
+        </form>
+      </section>
+
+      <section class="tools">
+        <div class="search">
+          <input id="search" type="search" placeholder="搜索备注、分类、商家、账户" />
+        </div>
+        <select id="monthFilter" aria-label="月份筛选"></select>
+        <button id="exportCsv" type="button">导出 CSV</button>
+        <button id="clearAll" class="danger" type="button">清空</button>
+      </section>
+
+      <section class="records-panel">
+        <div class="panel-title">
+          <h2>账单明细</h2>
+          <span id="recordCount">0 笔</span>
+        </div>
+        <div id="records" class="records"></div>
+      </section>
+
+      <section class="notice">
+        <strong>隐私说明</strong>
+        <p>账单记录保存在当前手机浏览器里。语音识别由浏览器/手机系统提供，截图 OCR 需要加载识别库；敏感截图建议识别后删除预览或改用手动输入。</p>
+      </section>
+    </main>
+
+    <template id="recordTemplate">
+      <article class="record">
+        <div class="record-icon"></div>
+        <div class="record-body">
+          <strong class="record-title"></strong>
+          <span class="record-meta"></span>
+        </div>
+        <div class="record-money"></div>
+        <button class="delete" type="button" title="删除">×</button>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
