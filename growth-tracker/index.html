@@ -39,6 +39,22 @@
 
       <section class="board-grid" id="boardGrid" aria-label="六个成长板块"></section>
 
+      <section class="voice-panel">
+        <div>
+          <h2>语音记录</h2>
+          <p id="voiceStatus">点一下开始说话，例如：技术，今天学会一个自动化工具，练习30分钟，评分4分，明天继续做真实案例。</p>
+        </div>
+        <button id="voiceButton" class="voice-button" type="button">
+          <span id="voiceIcon">麦</span>
+          <strong id="voiceLabel">开始语音</strong>
+        </button>
+        <textarea id="voiceText" placeholder="语音识别文字会显示在这里，也可以手动改完再解析。"></textarea>
+        <div class="voice-actions">
+          <button id="parseVoice" type="button">解析到表单</button>
+          <button id="clearVoice" type="button">清空语音</button>
+        </div>
+      </section>
+
       <section class="record-panel">
         <div class="panel-title">
           <div>
@@ -117,6 +133,8 @@
         <div id="records" class="records"></div>
       </section>
     </main>
+
+    <button id="floatingVoice" class="floating-voice" type="button" title="语音记录">麦</button>
 
     <template id="recordTemplate">
       <article class="record">

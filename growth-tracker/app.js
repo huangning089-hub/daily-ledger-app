@@ -60,6 +60,8 @@ const state = {
   query: ""
 };
 
+let recognition = null;
+
 const el = {
   todayCount: document.querySelector("#todayCount"),
   monthCount: document.querySelector("#monthCount"),
@@ -68,6 +70,14 @@ const el = {
   activeTitle: document.querySelector("#activeTitle"),
   activePrompt: document.querySelector("#activePrompt"),
   activeBadge: document.querySelector("#activeBadge"),
+  voiceButton: document.querySelector("#voiceButton"),
+  floatingVoice: document.querySelector("#floatingVoice"),
+  voiceIcon: document.querySelector("#voiceIcon"),
+  voiceLabel: document.querySelector("#voiceLabel"),
+  voiceStatus: document.querySelector("#voiceStatus"),
+  voiceText: document.querySelector("#voiceText"),
+  parseVoice: document.querySelector("#parseVoice"),
+  clearVoice: document.querySelector("#clearVoice"),
   form: document.querySelector("#recordForm"),
   date: document.querySelector("#date"),
   kind: document.querySelector("#kind"),
@@ -123,6 +133,13 @@ function init() {
   el.exportJson.addEventListener("click", exportBackup);
   el.importJson.addEventListener("change", importBackup);
   el.exportCsv.addEventListener("click", exportCsv);
+  el.voiceButton.addEventListener("click", toggleVoice);
+  el.floatingVoice.addEventListener("click", toggleVoice);
+  el.parseVoice.addEventListener("click", () => applyVoiceDraft(el.voiceText.value));
+  el.clearVoice.addEventListener("click", () => {
+    el.voiceText.value = "";
+    el.voiceStatus.textContent = "已清空。点一下开始说话，识别后会自动填到下方表单。";
+  });
 }
 
 function renderBoards() {
@@ -199,6 +216,157 @@ function saveRecord(event) {
   renderMonthOptions();
   renderActiveArea();
   render();
+}
+
+function toggleVoice() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert("这个浏览器不支持网页语音识别。可以点语音框，用手机输入法自带的语音输入，然后点“解析到表单”。");
+    el.voiceText.focus();
+    return;
+  }
+  if (recognition) {
+    recognition.stop();
+    return;
+  }
+  recognition = new SpeechRecognition();
+  recognition.lang = "zh-CN";
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  setVoiceListening(true);
+  recognition.onresult = (event) => {
+    const text = Array.from(event.results).map((result) => result[0].transcript).join("");
+    el.voiceText.value = text;
+    el.voiceStatus.textContent = "正在识别，停顿后会自动解析到表单。";
+  };
+  recognition.onerror = () => {
+    el.voiceStatus.textContent = "语音识别失败。可以用手机输入法语音输入到文字框，再点解析。";
+  };
+  recognition.onend = () => {
+    const text = el.voiceText.value.trim();
+    recognition = null;
+    setVoiceListening(false);
+    if (text) {
+      applyVoiceDraft(text);
+    } else {
+      el.voiceStatus.textContent = "没有识别到内容，可以再点一次语音。";
+    }
+  };
+  recognition.start();
+}
+
+function setVoiceListening(isListening) {
+  el.voiceButton.classList.toggle("listening", isListening);
+  el.floatingVoice.classList.toggle("listening", isListening);
+  el.voiceIcon.textContent = isListening ? "停" : "麦";
+  el.voiceLabel.textContent = isListening ? "停止识别" : "开始语音";
+  el.floatingVoice.textContent = isListening ? "停" : "麦";
+  el.voiceStatus.textContent = isListening ? "正在听，说完停顿一下，或再点一次停止。" : "识别完成后会填入下方表单，请确认后保存。";
+}
+
+function applyVoiceDraft(text) {
+  const draft = parseVoiceText(text);
+  setActiveArea(draft.area);
+  el.date.value = draft.date;
+  el.kind.value = draft.kind;
+  el.title.value = draft.title;
+  el.metric.value = draft.metric;
+  el.score.value = String(draft.score);
+  el.note.value = draft.note;
+  el.next.value = draft.next;
+  el.voiceStatus.textContent = `已解析到「${areaName(draft.area)}」板块。检查无误后点“保存到这个板块”。`;
+  el.title.focus();
+}
+
+function parseVoiceText(text) {
+  const raw = (text || "").replace(/\s+/g, " ").trim();
+  const normalized = raw.replace(/[，。；;,.]/g, " ");
+  const area = inferVoiceArea(normalized);
+  const kind = inferVoiceKind(normalized);
+  const score = inferVoiceScore(normalized);
+  const metric = inferVoiceMetric(normalized);
+  const next = inferVoiceNext(raw);
+  const title = inferVoiceTitle(raw, area, next);
+  const note = inferVoiceNote(raw, title, next);
+  return {
+    area,
+    date: inferVoiceDate(normalized),
+    kind,
+    title: title || "语音记录",
+    metric,
+    score,
+    note,
+    next
+  };
+}
+
+function inferVoiceArea(text) {
+  const matched = areas.find((area) => text.includes(area.name));
+  if (matched) return matched.id;
+  const rules = [
+    ["money", ["客户", "成交", "收入", "赚钱", "现金流", "报价", "回款", "订单", "利润", "生意"]],
+    ["body", ["身体", "运动", "跑步", "睡觉", "睡眠", "饮食", "健身", "体重", "走路", "精力"]],
+    ["family", ["家庭", "老婆", "孩子", "父母", "家里", "陪伴", "沟通", "做饭"]],
+    ["speech", ["表达", "说话", "演讲", "沟通", "谈判", "写作", "汇报", "复述"]],
+    ["tech", ["技术", "代码", "工具", "系统", "自动化", "学习", "网站", "小程序", "AI"]],
+    ["manage", ["管理", "计划", "任务", "团队", "流程", "安排", "复盘", "执行"]]
+  ];
+  const found = rules.find(([, words]) => words.some((word) => text.includes(word)));
+  return found ? found[0] : state.activeArea;
+}
+
+function inferVoiceKind(text) {
+  if (text.includes("问题") || text.includes("卡住") || text.includes("没做好")) return "问题";
+  if (text.includes("学") || text.includes("练习") || text.includes("研究")) return "学习";
+  if (text.includes("复盘") || text.includes("总结")) return "复盘";
+  if (text.includes("完成") || text.includes("做到") || text.includes("成交") || text.includes("结果")) return "成果";
+  return "行动";
+}
+
+function inferVoiceScore(text) {
+  const match = text.match(/(?:评分|打分|自评)?\s*([1-5])\s*分/);
+  if (match) return Number(match[1]);
+  if (text.includes("很好") || text.includes("满意")) return 5;
+  if (text.includes("不错") || text.includes("还行")) return 4;
+  if (text.includes("一般")) return 3;
+  if (text.includes("没做好") || text.includes("差")) return 2;
+  return 3;
+}
+
+function inferVoiceMetric(text) {
+  const money = text.match(/[¥￥]?\d+(?:\.\d+)?\s*(?:元|块|万|单|个客户|分钟|小时|公里|页|次|条)/);
+  if (money) return money[0];
+  const number = text.match(/\d+(?:\.\d+)?\s*(?:个|次|条|分钟|小时|公里|页|单)/);
+  return number ? number[0] : "";
+}
+
+function inferVoiceNext(text) {
+  const match = text.match(/(?:明天|下一步|接下来|然后)(.*)$/);
+  return match ? match[0].replace(/^然后/, "下一步").slice(0, 100).trim() : "";
+}
+
+function inferVoiceTitle(text, areaId, next) {
+  let title = text
+    .replace(next, "")
+    .replace(new RegExp(areaName(areaId), "g"), "")
+    .replace(/(今天|昨天|前天|记录一下|帮我记录|语音记录|评分|打分|自评)\s*/g, "")
+    .replace(/[1-5]\s*分/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  title = title.replace(/^，|。|,|\./, "").trim();
+  return title.slice(0, 60);
+}
+
+function inferVoiceNote(text, title, next) {
+  const note = text.replace(title, "").replace(next, "").replace(/\s+/g, " ").trim();
+  return note.slice(0, 300);
+}
+
+function inferVoiceDate(text) {
+  const now = new Date();
+  if (text.includes("前天")) return dateInput(addDays(now, -2));
+  if (text.includes("昨天")) return dateInput(addDays(now, -1));
+  return todayInput();
 }
 
 function render() {
@@ -349,11 +517,21 @@ function loadRecords() {
 
 function todayInput() {
   const date = new Date();
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  return dateInput(date);
 }
 
 function currentMonth() {
   return todayInput().slice(0, 7);
+}
+
+function dateInput(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function addDays(date, days) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
 }
 
 function csvCell(value) {

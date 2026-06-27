@@ -18,6 +18,7 @@
 body {
   margin: 0;
   min-height: 100vh;
+  padding-bottom: 84px;
   background:
     radial-gradient(circle at 10% 0%, rgba(36, 92, 84, 0.14), transparent 34%),
     linear-gradient(180deg, #f5faf7 0%, #eef5f6 100%);
@@ -141,6 +142,7 @@ h2 {
 
 .today-strip article,
 .board-card,
+.voice-panel,
 .record-panel,
 .records-panel {
   background: rgba(255, 255, 255, 0.95);
@@ -219,6 +221,77 @@ h2 {
   color: var(--muted);
   font-size: 13px;
   font-weight: 750;
+}
+
+.voice-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 128px;
+  gap: 12px;
+  align-items: start;
+  margin-top: 12px;
+  padding: 15px;
+}
+
+.voice-panel h2 {
+  margin-bottom: 6px;
+}
+
+.voice-panel p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.voice-button {
+  min-height: 72px;
+  display: grid;
+  place-items: center;
+  gap: 3px;
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+
+.voice-button span {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.voice-button.listening,
+.floating-voice.listening {
+  background: var(--red);
+  border-color: var(--red);
+}
+
+.voice-panel textarea {
+  grid-column: 1 / -1;
+  min-height: 78px;
+}
+
+.voice-actions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+.floating-voice {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 20;
+  width: 62px;
+  height: 62px;
+  min-height: 62px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+  font-size: 26px;
+  box-shadow: 0 16px 38px rgba(36, 92, 84, 0.28);
 }
 
 .record-panel,
@@ -401,9 +474,14 @@ h2 {
 
   .today-strip,
   .board-grid,
+  .voice-panel,
   #recordForm,
   .template-row,
   .tools {
+    grid-template-columns: 1fr;
+  }
+
+  .voice-actions {
     grid-template-columns: 1fr;
   }
 
