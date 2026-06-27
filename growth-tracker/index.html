@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-title" content="成长记录" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=4" />
   </head>
   <body>
     <main class="app">
@@ -41,17 +41,26 @@
 
       <section class="voice-panel">
         <div>
-          <h2>语音记录</h2>
-          <p id="voiceStatus">点一下开始说话，例如：技术，今天学会一个自动化工具，练习30分钟，评分4分，明天继续做真实案例。</p>
+          <h2>长语音记录</h2>
+          <p id="voiceStatus">点“开始长录音”后会一直累积文字；你不点停止，它会自动继续听。</p>
         </div>
         <button id="voiceButton" class="voice-button" type="button">
           <span id="voiceIcon">麦</span>
-          <strong id="voiceLabel">开始语音</strong>
+          <strong id="voiceLabel">开始长录音</strong>
         </button>
-        <textarea id="voiceText" placeholder="语音识别文字会显示在这里，也可以手动改完再解析。"></textarea>
+        <textarea id="voiceText" placeholder="长录音文字会一直累积在这里。例：技术，今天学会自动化工具，练习30分钟，评分4分，明天做真实案例。"></textarea>
         <div class="voice-actions">
-          <button id="parseVoice" type="button">解析到表单</button>
+          <button id="parseVoice" type="button">整理到表单</button>
+          <button id="analyzeVoice" type="button">本地分析</button>
+          <button id="copyAiPrompt" type="button">复制给 AI</button>
           <button id="clearVoice" type="button">清空语音</button>
+        </div>
+        <div id="analysisBox" class="analysis-box" hidden>
+          <div class="panel-title">
+            <h3>分析草稿</h3>
+            <span>可复制到 AI 模型继续分析</span>
+          </div>
+          <pre id="analysisOutput"></pre>
         </div>
       </section>
 
@@ -150,6 +159,6 @@
       </article>
     </template>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=4"></script>
   </body>
 </html>

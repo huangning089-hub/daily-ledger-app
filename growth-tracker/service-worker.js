@@ -1,9 +1,9 @@
-const CACHE_NAME = "growth-tracker-v2";
+const CACHE_NAME = "growth-tracker-v4";
 const APP_FILES = [
   "./",
   "./index.html",
-  "./styles.css",
-  "./app.js",
+  "./styles.css?v=4",
+  "./app.js?v=4",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",

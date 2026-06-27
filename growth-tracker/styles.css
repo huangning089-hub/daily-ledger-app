@@ -271,8 +271,30 @@ h2 {
 .voice-actions {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: 9px;
+}
+
+.analysis-box {
+  grid-column: 1 / -1;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfefd;
+  padding: 12px;
+}
+
+.analysis-box h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.analysis-box pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.6;
 }
 
 .floating-voice {

@@ -61,6 +61,13 @@ const state = {
 };
 
 let recognition = null;
+let voiceSession = {
+  listening: false,
+  manualStop: false,
+  finalText: "",
+  interimText: "",
+  restartTimer: null
+};
 
 const el = {
   todayCount: document.querySelector("#todayCount"),
@@ -77,7 +84,11 @@ const el = {
   voiceStatus: document.querySelector("#voiceStatus"),
   voiceText: document.querySelector("#voiceText"),
   parseVoice: document.querySelector("#parseVoice"),
+  analyzeVoice: document.querySelector("#analyzeVoice"),
+  copyAiPrompt: document.querySelector("#copyAiPrompt"),
   clearVoice: document.querySelector("#clearVoice"),
+  analysisBox: document.querySelector("#analysisBox"),
+  analysisOutput: document.querySelector("#analysisOutput"),
   form: document.querySelector("#recordForm"),
   date: document.querySelector("#date"),
   kind: document.querySelector("#kind"),
@@ -136,9 +147,16 @@ function init() {
   el.voiceButton.addEventListener("click", toggleVoice);
   el.floatingVoice.addEventListener("click", toggleVoice);
   el.parseVoice.addEventListener("click", () => applyVoiceDraft(el.voiceText.value));
+  el.analyzeVoice.addEventListener("click", analyzeVoiceText);
+  el.copyAiPrompt.addEventListener("click", copyAiPrompt);
   el.clearVoice.addEventListener("click", () => {
+    stopVoiceSession(false);
+    voiceSession.finalText = "";
+    voiceSession.interimText = "";
     el.voiceText.value = "";
-    el.voiceStatus.textContent = "已清空。点一下开始说话，识别后会自动填到下方表单。";
+    el.analysisOutput.textContent = "";
+    el.analysisBox.hidden = true;
+    el.voiceStatus.textContent = "已清空。点“开始长录音”后会一直累积文字。";
   });
 }
 
@@ -221,50 +239,120 @@ function saveRecord(event) {
 function toggleVoice() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
-    alert("这个浏览器不支持网页语音识别。可以点语音框，用手机输入法自带的语音输入，然后点“解析到表单”。");
+    alert("这个浏览器不支持网页语音识别。可以点语音框，用手机输入法自带的语音输入，然后点“整理到表单”。");
     el.voiceText.focus();
     return;
   }
-  if (recognition) {
-    recognition.stop();
+  if (voiceSession.listening) {
+    stopVoiceSession(true);
     return;
   }
+  startVoiceSession(SpeechRecognition);
+}
+
+function startVoiceSession(SpeechRecognition) {
+  voiceSession.listening = true;
+  voiceSession.manualStop = false;
+  voiceSession.finalText = el.voiceText.value.trim();
+  voiceSession.interimText = "";
+  setVoiceListening(true);
+  startRecognitionChunk(SpeechRecognition);
+}
+
+function startRecognitionChunk(SpeechRecognition) {
+  if (!voiceSession.listening) return;
   recognition = new SpeechRecognition();
   recognition.lang = "zh-CN";
-  recognition.continuous = false;
+  recognition.continuous = true;
   recognition.interimResults = true;
-  setVoiceListening(true);
   recognition.onresult = (event) => {
-    const text = Array.from(event.results).map((result) => result[0].transcript).join("");
-    el.voiceText.value = text;
-    el.voiceStatus.textContent = "正在识别，停顿后会自动解析到表单。";
+    let interim = "";
+    for (let index = event.resultIndex; index < event.results.length; index += 1) {
+      const result = event.results[index];
+      const transcript = result[0].transcript.trim();
+      if (!transcript) continue;
+      if (result.isFinal) {
+        voiceSession.finalText = appendText(voiceSession.finalText, transcript);
+      } else {
+        interim = appendText(interim, transcript);
+      }
+    }
+    voiceSession.interimText = interim;
+    updateVoiceTextarea();
+    el.voiceStatus.textContent = "长录音中，文字会持续累积；点“停止录音”才结束。";
   };
-  recognition.onerror = () => {
-    el.voiceStatus.textContent = "语音识别失败。可以用手机输入法语音输入到文字框，再点解析。";
+  recognition.onerror = (event) => {
+    if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+      voiceSession.listening = false;
+      voiceSession.manualStop = true;
+      setVoiceListening(false);
+      el.voiceStatus.textContent = "麦克风权限被拒绝。请允许麦克风，或用手机输入法语音输入。";
+      return;
+    }
+    el.voiceStatus.textContent = "识别短暂停顿，正在继续长录音。";
   };
   recognition.onend = () => {
-    const text = el.voiceText.value.trim();
     recognition = null;
+    if (voiceSession.listening && !voiceSession.manualStop) {
+      clearTimeout(voiceSession.restartTimer);
+      voiceSession.restartTimer = setTimeout(() => startRecognitionChunk(SpeechRecognition), 250);
+      return;
+    }
     setVoiceListening(false);
-    if (text) {
-      applyVoiceDraft(text);
+    voiceSession.finalText = el.voiceText.value.trim();
+    voiceSession.interimText = "";
+    if (voiceSession.finalText) {
+      el.voiceStatus.textContent = "已停止。可以点“整理到表单”或“本地分析”。";
     } else {
-      el.voiceStatus.textContent = "没有识别到内容，可以再点一次语音。";
+      el.voiceStatus.textContent = "没有识别到内容，可以重新开始长录音。";
     }
   };
   recognition.start();
+}
+
+function stopVoiceSession(shouldKeepStatus) {
+  voiceSession.manualStop = true;
+  voiceSession.listening = false;
+  clearTimeout(voiceSession.restartTimer);
+  voiceSession.finalText = el.voiceText.value.trim();
+  voiceSession.interimText = "";
+  if (recognition) {
+    recognition.stop();
+  } else {
+    setVoiceListening(false);
+  }
+  if (shouldKeepStatus) {
+    el.voiceStatus.textContent = "正在停止，文字会保留在文本框里。";
+  }
 }
 
 function setVoiceListening(isListening) {
   el.voiceButton.classList.toggle("listening", isListening);
   el.floatingVoice.classList.toggle("listening", isListening);
   el.voiceIcon.textContent = isListening ? "停" : "麦";
-  el.voiceLabel.textContent = isListening ? "停止识别" : "开始语音";
+  el.voiceLabel.textContent = isListening ? "停止录音" : "开始长录音";
   el.floatingVoice.textContent = isListening ? "停" : "麦";
-  el.voiceStatus.textContent = isListening ? "正在听，说完停顿一下，或再点一次停止。" : "识别完成后会填入下方表单，请确认后保存。";
+  el.voiceStatus.textContent = isListening ? "长录音中；不点停止就会继续记录。" : "录音已停止，文字会保留。";
+}
+
+function appendText(base, addition) {
+  const cleanBase = (base || "").trim();
+  const cleanAddition = (addition || "").trim();
+  if (!cleanAddition) return cleanBase;
+  return cleanBase ? `${cleanBase} ${cleanAddition}` : cleanAddition;
+}
+
+function updateVoiceTextarea() {
+  const combined = appendText(voiceSession.finalText, voiceSession.interimText);
+  el.voiceText.value = combined;
+  el.voiceText.scrollTop = el.voiceText.scrollHeight;
 }
 
 function applyVoiceDraft(text) {
+  if (!text.trim()) {
+    alert("还没有语音文字。先长录音，或手动输入文字。");
+    return;
+  }
   const draft = parseVoiceText(text);
   setActiveArea(draft.area);
   el.date.value = draft.date;
@@ -276,6 +364,90 @@ function applyVoiceDraft(text) {
   el.next.value = draft.next;
   el.voiceStatus.textContent = `已解析到「${areaName(draft.area)}」板块。检查无误后点“保存到这个板块”。`;
   el.title.focus();
+}
+
+function analyzeVoiceText() {
+  const text = el.voiceText.value.trim();
+  if (!text) {
+    alert("还没有可分析的文字。");
+    return;
+  }
+  const analysis = buildLocalAnalysis(text);
+  el.analysisOutput.textContent = analysis;
+  el.analysisBox.hidden = false;
+  el.voiceStatus.textContent = "已生成本地分析草稿。需要更像 AI 听记，可以点“复制给 AI”。";
+}
+
+async function copyAiPrompt() {
+  const text = el.voiceText.value.trim();
+  if (!text) {
+    alert("还没有可复制的语音文字。");
+    return;
+  }
+  const prompt = buildAiPrompt(text);
+  try {
+    await navigator.clipboard.writeText(prompt);
+    el.voiceStatus.textContent = "已复制 AI 分析提示词，可以粘贴到 ChatGPT 或其他 AI 模型。";
+  } catch {
+    el.analysisOutput.textContent = prompt;
+    el.analysisBox.hidden = false;
+    el.voiceStatus.textContent = "浏览器不允许自动复制，我已把提示词放在分析草稿里。";
+  }
+}
+
+function buildLocalAnalysis(text) {
+  const sentences = splitVoiceSentences(text);
+  const grouped = areas.map((area) => {
+    const items = sentences.filter((sentence) => inferVoiceArea(sentence) === area.id);
+    return { area, items };
+  }).filter((group) => group.items.length > 0);
+  const nextItems = sentences.filter((sentence) => /明天|下一步|接下来|然后|需要|准备/.test(sentence));
+  const problemItems = sentences.filter((sentence) => /问题|卡住|困难|没做好|担心|风险|不足/.test(sentence));
+  const metricItems = sentences.map(inferVoiceMetric).filter(Boolean);
+
+  const lines = [];
+  lines.push("总结");
+  lines.push(`- 共记录 ${sentences.length || 1} 段内容，涉及 ${grouped.length || 1} 个板块。`);
+  if (metricItems.length) lines.push(`- 提到的数据：${Array.from(new Set(metricItems)).join("、")}`);
+  lines.push("");
+  lines.push("按板块整理");
+  if (grouped.length === 0) {
+    lines.push(`- ${areaName(state.activeArea)}：${text.slice(0, 120)}`);
+  } else {
+    grouped.forEach((group) => {
+      lines.push(`- ${group.area.name}：${group.items.slice(0, 3).join("；")}`);
+    });
+  }
+  lines.push("");
+  lines.push("问题和风险");
+  lines.push(problemItems.length ? problemItems.map((item) => `- ${item}`).join("\n") : "- 暂未明显提到问题。");
+  lines.push("");
+  lines.push("下一步");
+  lines.push(nextItems.length ? nextItems.map((item) => `- ${item}`).join("\n") : "- 从上面内容里选一件最重要的事，明天继续推进。");
+  return lines.join("\n");
+}
+
+function buildAiPrompt(text) {
+  return [
+    "请像飞书 AI 听记一样，帮我整理下面这段个人成长长语音记录。",
+    "",
+    "输出格式：",
+    "1. 一段简短总结",
+    "2. 按六个板块归类：赚钱、身体、家庭、表达、技术、管理",
+    "3. 提取关键行动、结果数据、问题风险",
+    "4. 给出明天最重要的 3 个下一步",
+    "5. 最后生成可以保存到成长记录小程序的条目表格：板块｜类型｜行动｜结果数据｜评分建议｜复盘｜下一步",
+    "",
+    "原始记录：",
+    text
+  ].join("\n");
+}
+
+function splitVoiceSentences(text) {
+  return text
+    .split(/[。！？；;!?\\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function parseVoiceText(text) {
@@ -301,8 +473,11 @@ function parseVoiceText(text) {
 }
 
 function inferVoiceArea(text) {
-  const matched = areas.find((area) => text.includes(area.name));
-  if (matched) return matched.id;
+  const namedMatches = areas
+    .map((area) => ({ area, index: text.indexOf(area.name) }))
+    .filter((match) => match.index >= 0)
+    .sort((a, b) => a.index - b.index);
+  if (namedMatches.length) return namedMatches[0].area.id;
   const rules = [
     ["money", ["客户", "成交", "收入", "赚钱", "现金流", "报价", "回款", "订单", "利润", "生意"]],
     ["body", ["身体", "运动", "跑步", "睡觉", "睡眠", "饮食", "健身", "体重", "走路", "精力"]],
@@ -311,8 +486,14 @@ function inferVoiceArea(text) {
     ["tech", ["技术", "代码", "工具", "系统", "自动化", "学习", "网站", "小程序", "AI"]],
     ["manage", ["管理", "计划", "任务", "团队", "流程", "安排", "复盘", "执行"]]
   ];
-  const found = rules.find(([, words]) => words.some((word) => text.includes(word)));
-  return found ? found[0] : state.activeArea;
+  const found = rules
+    .map(([areaId, words]) => ({
+      areaId,
+      index: Math.min(...words.map((word) => text.indexOf(word)).filter((index) => index >= 0))
+    }))
+    .filter((match) => Number.isFinite(match.index))
+    .sort((a, b) => a.index - b.index)[0];
+  return found ? found.areaId : state.activeArea;
 }
 
 function inferVoiceKind(text) {
