@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>六项成长记录</title>
+    <meta name="theme-color" content="#245c54" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="成长记录" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">赚钱 · 身体 · 家庭 · 表达 · 技术 · 管理</p>
+          <h1>每天把自己往前推一点</h1>
+          <p class="hero-text">六个板块都能记录行动、成果、复盘和下一步。数据保存在手机本地，可随时备份。</p>
+        </div>
+        <img src="icons/growth-512.png" alt="成长记录图标" />
+      </section>
+
+      <section class="today-strip" aria-label="今日概览">
+        <article>
+          <span>今日已记录</span>
+          <strong id="todayCount">0/6</strong>
+        </article>
+        <article>
+          <span>本月记录</span>
+          <strong id="monthCount">0</strong>
+        </article>
+        <article>
+          <span>平均评分</span>
+          <strong id="avgScore">0.0</strong>
+        </article>
+      </section>
+
+      <section class="board-grid" id="boardGrid" aria-label="六个成长板块"></section>
+
+      <section class="record-panel">
+        <div class="panel-title">
+          <div>
+            <h2 id="activeTitle">赚钱</h2>
+            <p id="activePrompt">记录今天让收入、客户、现金流变好的动作。</p>
+          </div>
+          <span id="activeBadge">今日 0 条</span>
+        </div>
+
+        <form id="recordForm">
+          <label>
+            日期
+            <input id="date" type="date" required />
+          </label>
+          <label>
+            记录类型
+            <select id="kind">
+              <option>行动</option>
+              <option>成果</option>
+              <option>问题</option>
+              <option>学习</option>
+              <option>复盘</option>
+            </select>
+          </label>
+          <label class="full">
+            今天做了什么
+            <input id="title" type="text" maxlength="60" placeholder="例如：联系3个客户、跑步30分钟、陪家人散步" required />
+          </label>
+          <label>
+            结果数据
+            <input id="metric" type="text" maxlength="40" placeholder="例如：成交¥800、30分钟、读10页" />
+          </label>
+          <label>
+            自评分
+            <select id="score">
+              <option value="5">5 分 很好</option>
+              <option value="4">4 分 不错</option>
+              <option value="3" selected>3 分 一般</option>
+              <option value="2">2 分 欠缺</option>
+              <option value="1">1 分 没做好</option>
+            </select>
+          </label>
+          <label class="full">
+            复盘
+            <textarea id="note" maxlength="300" placeholder="哪里做对了？哪里要改？"></textarea>
+          </label>
+          <label class="full">
+            下一步
+            <input id="next" type="text" maxlength="100" placeholder="明天最重要的一步是什么？" />
+          </label>
+          <button class="primary full" type="submit">保存到这个板块</button>
+        </form>
+
+        <div class="template-row" id="templateRow"></div>
+      </section>
+
+      <section class="tools">
+        <select id="monthFilter" aria-label="月份筛选"></select>
+        <select id="areaFilter" aria-label="板块筛选">
+          <option value="all">全部板块</option>
+        </select>
+        <input id="search" type="search" placeholder="搜索记录、复盘、下一步" />
+        <button id="exportJson" type="button">备份</button>
+        <label class="import-button">
+          恢复
+          <input id="importJson" type="file" accept=".json,application/json" />
+        </label>
+        <button id="exportCsv" type="button">导出表格</button>
+      </section>
+
+      <section class="records-panel">
+        <div class="panel-title">
+          <h2>记录明细</h2>
+          <span id="recordCount">0 条</span>
+        </div>
+        <div id="records" class="records"></div>
+      </section>
+    </main>
+
+    <template id="recordTemplate">
+      <article class="record">
+        <div class="record-icon"></div>
+        <div class="record-main">
+          <strong class="record-title"></strong>
+          <span class="record-meta"></span>
+          <p class="record-note"></p>
+          <p class="record-next"></p>
+        </div>
+        <div class="record-score"></div>
+        <button class="delete" type="button" title="删除">×</button>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
