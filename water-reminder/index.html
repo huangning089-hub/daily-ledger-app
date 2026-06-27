@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>孕期喝水提醒</title>
+    <meta name="theme-color" content="#2f8f83" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="喝水提醒" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">孕期喝水提醒</p>
+          <h1>今天陪她喝够水</h1>
+          <p class="range">参考目标：每天 1.9-2.8 L，少量多次喝。</p>
+        </div>
+        <img class="drop-art" src="icons/drop-512.png" alt="水滴图标" />
+      </section>
+
+      <section class="progress-panel">
+        <div class="ring-wrap">
+          <canvas id="progressRing" width="260" height="260" aria-label="今日喝水进度"></canvas>
+          <div class="ring-center">
+            <strong id="progressPercent">0%</strong>
+            <span id="progressText">0 / 2400 ml</span>
+          </div>
+        </div>
+        <div class="quick-actions">
+          <button class="primary" id="drinkDefault" type="button">喝一杯</button>
+          <div class="stepper">
+            <button id="minusWater" type="button" aria-label="减少一杯">-</button>
+            <input id="cupSize" type="number" min="50" step="50" value="250" aria-label="每杯毫升数" />
+            <button id="plusWater" type="button" aria-label="增加一杯">+</button>
+          </div>
+          <button id="undoDrink" type="button">撤回一杯</button>
+        </div>
+      </section>
+
+      <section class="settings-grid">
+        <article class="panel">
+          <div class="panel-title">
+            <h2>今天目标</h2>
+            <span id="targetHint">约 10 杯</span>
+          </div>
+          <label>
+            每日目标 ml
+            <input id="targetMl" type="number" min="1000" max="4000" step="100" value="2400" />
+          </label>
+          <div class="preset-row">
+            <button data-target="1900" type="button">1.9 L</button>
+            <button data-target="2400" type="button">2.4 L</button>
+            <button data-target="2800" type="button">2.8 L</button>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-title">
+            <h2>提醒时间</h2>
+            <span id="nextReminder">未开启</span>
+          </div>
+          <div class="time-grid">
+            <label>
+              开始
+              <input id="startTime" type="time" value="08:00" />
+            </label>
+            <label>
+              结束
+              <input id="endTime" type="time" value="21:30" />
+            </label>
+          </div>
+          <label>
+            间隔分钟
+            <input id="intervalMinutes" type="number" min="30" max="240" step="15" value="90" />
+          </label>
+          <div class="button-row">
+            <button id="enableNotify" type="button">开启页面提醒</button>
+            <button id="downloadCalendar" type="button">下载日历提醒</button>
+          </div>
+        </article>
+      </section>
+
+      <section class="panel guide-panel">
+        <div class="panel-title">
+          <h2>孕期饮水参考</h2>
+          <span>以医生建议为准</span>
+        </div>
+        <ul>
+          <li>常见参考：每天约 8-12 杯水，约 1.9-2.8 L。</li>
+          <li>天气热、出汗多、运动后，通常要适当增加。</li>
+          <li>尿液淡黄色通常说明水分比较够；很深、头晕、口干要留意。</li>
+          <li>如果医生限制饮水，或有肾脏问题、明显水肿、高血压等情况，按医生说的来。</li>
+        </ul>
+      </section>
+
+      <section class="panel log-panel">
+        <div class="panel-title">
+          <h2>今天记录</h2>
+          <button id="resetToday" class="danger" type="button">清空今天</button>
+        </div>
+        <div id="history" class="history"></div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
